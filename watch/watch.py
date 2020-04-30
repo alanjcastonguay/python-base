@@ -63,11 +63,17 @@ class Watch(object):
     def __init__(self, return_type=None):
         self._raw_return_type = return_type
         self._stop = False
+        self._connection_handle = None
         self._api_client = client.ApiClient()
         self.resource_version = None
 
     def stop(self):
         self._stop = True
+        try:
+            self._connection_handle.close()
+            self._connection_handle.release_conn()
+        except AttributeError:
+            pass
 
     def get_return_type(self, func):
         if self._raw_return_type:
@@ -136,6 +142,7 @@ class Watch(object):
         timeouts = ('timeout_seconds' in kwargs)
         while True:
             resp = func(*args, **kwargs)
+            self._connection_handle = resp
             try:
                 for line in iter_resp_lines(resp):
                     # unmarshal when we are receiving events from watch,
